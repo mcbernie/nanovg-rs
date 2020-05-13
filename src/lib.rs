@@ -125,6 +125,23 @@ impl Context {
         }
     }
 
+    pub fn create_framebuffer(&self, (width, height): (i32, i32)) -> Framebuffer {
+
+        let f = unsafe { 
+            let a = ffi::nvgluCreateFramebuffer(
+                self.raw(), 
+                width as c_int, 
+                height as c_int, 
+                (ffi::NVGimageFlags::NVG_IMAGE_FLIPY | ffi::NVGimageFlags::NVG_IMAGE_PREMULTIPLIED).bits()
+            );
+            let ref_imm: &ffi::NVGLUframebuffer = &*a;
+
+            ref_imm
+        };
+
+        Framebuffer::new(f.fbo,f.texture, f.image)
+    }
+
     fn global_composite_operation(&self, operation: CompositeOperation) {
         let ctx = self.raw();
         match operation {
@@ -316,6 +333,36 @@ impl Default for PathOptions {
             alpha: 1.0,
             transform: None,
         }
+    }
+}
+
+
+pub struct Framebuffer {
+    fbo: i32,
+    texture: i32,
+    image: i32,
+}
+
+impl Framebuffer {
+
+    fn new(fbo: i32, texture: i32, image: i32) -> Framebuffer {
+        Framebuffer {
+            fbo,
+            texture,
+            image
+        }
+    }
+
+    pub fn get_texture(&self) -> i32 {
+        self.texture
+    }
+
+    pub fn get_fbo(&self) -> i32 {
+        self.fbo
+    }
+
+    pub fn get_image<'a>(&self, ctx: &'a Context) -> Image<'a>{
+        Image(ctx, self.image)
     }
 }
 

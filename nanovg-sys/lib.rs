@@ -147,6 +147,17 @@ pub struct NVGtextRow {
     pub maxx: c_float,
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub struct NVGLUframebuffer {
+	pub ctx: *mut NVGcontext,
+    pub fbo: i32,
+    pub rbo: i32,
+    pub texture: i32,
+    pub image: i32,
+}
+
+
 extern "C" {
 	#[cfg(target_os = "windows")]
     pub fn gladLoadGL() -> i32;
@@ -158,6 +169,12 @@ extern "C" {
     );
     pub fn nvgCancelFrame(ctx: *mut NVGcontext);
     pub fn nvgEndFrame(ctx: *mut NVGcontext);
+
+    // Helper function to create GL frame buffer to render to.
+    pub fn nvgluBindFramebuffer(fb: *const NVGLUframebuffer);
+    pub fn nvgluCreateFramebuffer(ctx: *mut NVGcontext, w: c_int, h: c_int, imageFlags: c_int) -> *mut NVGLUframebuffer;
+    pub fn nvgluDeleteFramebuffer(fb: *mut NVGLUframebuffer);
+
     pub fn nvgGlobalCompositeOperation(ctx: *mut NVGcontext, op: c_int);
     pub fn nvgGlobalCompositeBlendFunc(ctx: *mut NVGcontext, sfactor: c_int, dfactor: c_int);
     pub fn nvgGlobalCompositeBlendFuncSeparate(
