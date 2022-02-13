@@ -15558,8 +15558,8 @@ GLAPI PFNGLVIDEOCAPTURESTREAMPARAMETERDVNVPROC glad_glVideoCaptureStreamParamete
 #define glVideoCaptureStreamParameterdvNV glad_glVideoCaptureStreamParameterdvNV
 #endif
 #ifndef GL_NV_viewport_array2
-#define GL_NV_viewport_array2 1
-GLAPI int GLAD_GL_NV_viewport_array2;
+#define GL_NV__array2 1
+GLAPI int GLAD_GL_NV__array2;
 #endif
 #ifndef GL_NV_viewport_swizzle
 #define GL_NV_viewport_swizzle 1
