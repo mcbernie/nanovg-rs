@@ -18,7 +18,7 @@ fn build_library(backend_macro: &str) {
     config.file("nanovg_shim.c");
     config.define(backend_macro, None);
     if target.contains("linux") {
-        println!("cargo:rustc-link-lib=GL");
+        // println!("cargo:rustc-link-lib=GL");
     } else if target.contains("darwin") {
         println!("cargo:rustc-link-lib=framework=OpenGL");
     } else if target.contains("windows") {
