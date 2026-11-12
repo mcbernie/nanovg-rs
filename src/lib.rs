@@ -448,7 +448,7 @@ impl<'a> Frame<'a> {
     /// `text` the string to draw.
     /// `options` optional (`Default::default`) options that control the visual appearance of the text.
     pub fn text<S: AsRef<str>>(&self, font: Font, (x, y): (f32, f32), text: S, options: TextOptions) {
-        let text = CString::new(text.as_ref()).unwrap();
+        let text = text_to_cstring(text.as_ref());
         self.text_prepare(font, options);
 
         self.draw_prepare(options.clip, options.transform);
@@ -464,7 +464,7 @@ impl<'a> Frame<'a> {
     /// `text` the string to draw.
     /// `options` optional (`Default::default`) options that control the visual appearance of the text.
     pub fn text_box<S: AsRef<str>>(&self, font: Font, (x, y): (f32, f32), text: S, options: TextOptions) {
-        let text = CString::new(text.as_ref()).unwrap();
+        let text = text_to_cstring(text.as_ref());
         self.text_prepare(font, options);
 
         self.draw_prepare(options.clip, options.transform);
@@ -495,7 +495,7 @@ impl<'a> Frame<'a> {
         text: S,
         options: TextOptions,
     ) -> (f32, TextBounds) {
-        let text = CString::new(text.as_ref()).unwrap();
+        let text = text_to_cstring(text.as_ref());
         self.text_prepare(font, options);
         let mut bounds = [0.0f32; 4];
         let measure = unsafe {
@@ -524,7 +524,7 @@ impl<'a> Frame<'a> {
         text: S,
         options: TextOptions,
     ) -> TextBounds {
-        let text = CString::new(text.as_ref()).unwrap();
+        let text = text_to_cstring(text.as_ref());
         self.text_prepare(font, options);
         let mut bounds = [0.0f32; 4];
         unsafe {
@@ -547,7 +547,7 @@ impl<'a> Frame<'a> {
     /// `text` the text to break into glyph positions
     /// If you want to get current glyph and the next one, use .peekable() on this iterator.
     pub fn text_glyph_positions<S: AsRef<str>>(&self, (x, y): (f32, f32), text: S) -> TextGlyphPositions {
-        TextGlyphPositions::new(self.context, x, y, CString::new(text.as_ref()).unwrap())
+        TextGlyphPositions::new(self.context, x, y, text_to_cstring(text.as_ref()))
     }
 
     /// Returns vertical text metrics based on given font and text options
@@ -583,7 +583,7 @@ impl<'a> Frame<'a> {
         options: TextOptions,
     ) -> TextBreakLines {
         self.text_prepare(font, options);
-        TextBreakLines::new(self.context, CString::new(text.as_ref()).unwrap(), break_row_width)
+        TextBreakLines::new(self.context, text_to_cstring(text.as_ref()), break_row_width)
     }
 }
 
@@ -1929,6 +1929,21 @@ impl Transform {
 
 /// Implementation of multiplication Trait for Transform.
 /// The order in which you multiplicate matters (you are multiplicating matrices)
+/// Converts text into a C string for nanovg.
+///
+/// Interior NUL bytes cannot be represented in a C string. They are removed
+/// instead of panicking, so arbitrary (e.g. server provided) text can be drawn.
+fn text_to_cstring(text: &str) -> CString {
+    match CString::new(text) {
+        Ok(c_text) => c_text,
+        Err(_) => {
+            let cleaned: Vec<u8> = text.bytes().filter(|b| *b != 0).collect();
+            // Cannot fail anymore, all NUL bytes were removed.
+            CString::new(cleaned).unwrap_or_default()
+        }
+    }
+}
+
 impl std::ops::Mul for Transform {
     type Output = Transform;
 
@@ -2022,5 +2037,25 @@ mod tests {
         let a = Transform::new().with_rotation(123.0);
         let b = Transform::new().with_skew(66.6, 1337.2);
         trans_not_eq!(a * b, b * a);
+    }
+}
+
+#[cfg(test)]
+mod text_to_cstring_tests {
+    use super::text_to_cstring;
+
+    #[test]
+    fn keeps_regular_text() {
+        assert_eq!(text_to_cstring("ABC 123 äöü").to_str().ok(), Some("ABC 123 äöü"));
+    }
+
+    #[test]
+    fn removes_interior_nul_bytes() {
+        assert_eq!(text_to_cstring("AB\0C\0").to_str().ok(), Some("ABC"));
+    }
+
+    #[test]
+    fn handles_only_nul_bytes() {
+        assert_eq!(text_to_cstring("\0\0").to_str().ok(), Some(""));
     }
 }
